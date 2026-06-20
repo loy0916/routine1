@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 웰니스 코치 - 맞춤형 건강 비서</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Noto Sans KR -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    /* 애니메이션 효과 */
+    @keyframes wave {
+      0%, 100% { transform: translateY(0) scaleY(1); }
+      50% { transform: translateY(-4px) scaleY(1.05); }
+    }
+    .water-wave {
+      animation: wave 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-16 min-h-screen">
+
+  <!-- 1. 헤더 영역 -->
+  <header class="bg-emerald-600 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <svg class="w-8 h-8 text-emerald-100 fill-current" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+        <div>
+          <h1 class="font-black text-lg tracking-wide">AI 웰니스 코치</h1>
+          <p class="text-[10px] text-emerald-100">식약처 섭취 가이드라인 기반 밀착 관리</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-3 text-sm">
+        <button id="alarmToggleBtn" class="bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1">
+          <span>🔔 알림</span>
+          <span id="alarmStatusText">ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 콘텐트 -->
+  <main class="max-w-4xl mx-auto px-4 mt-6">
+    
+    <!-- 실시간 플로팅 코칭 메시지 보드 -->
+    <div id="coachingMessageBanner" class="bg-gradient-to-r from-sky-50 to-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-sm mb-6 flex justify-between items-start transition-all duration-300">
+      <div class="flex space-x-3">
+        <span class="text-2xl" id="coachEmoji">💡</span>
+        <div>
+          <h4 class="font-bold text-emerald-900 text-xs">코칭 매니저 가이드</h4>
+          <p id="coachText" class="text-xs text-emerald-800 mt-1 leading-relaxed">반갑습니다! 오늘 하루도 2L의 수분 공급과 균형 잡힌 영양소 섭취를 도울게요. 식단 사진을 올리면 영양 가치가 자동으로 계산됩니다.</p>
+        </div>
+      </div>
+      <button onclick="closeCoachingBanner()" class="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none">&times;</button>
+    </div>
+
+    <!-- 2. 날짜 선택기 및 워드 다운로드 일지 컨트롤러 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      <div class="text-center sm:text-left">
+        <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2 justify-center sm:justify-start">
+          <span>🎯 일일 건강 기록 컨트롤러</span>
+          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">오프라인 안전 저장</span>
+        </h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">날짜별로 저장된 수분, 영양제 및 식단을 조회하고 보고서로 바로 보관하세요.</p>
+      </div>
+      <div class="flex items-center space-x-2 w-full sm:w-auto justify-center">
+        <button id="prevDayBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">◀ 어제</button>
+        <input type="date" id="dateInput" class="border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <button id="nextDayBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">내일 ▶</button>
+        
+        <!-- [신규] 워드 다운로드 버튼 -->
+        <button id="downloadWordBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center space-x-1.5 shadow-sm">
+          <span>💾 워드 다운로드</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. 메인 기능 전환 탭 -->
+    <div class="flex border-b border-slate-200 mb-6 overflow-x-auto whitespace-nowrap bg-white p-1 rounded-xl shadow-sm">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn flex-1 py-3 px-4 rounded-lg text-xs font-extrabold transition flex items-center justify-center space-x-2 bg-emerald-500 text-white">
+        <span>📊 종합 대시보드</span>
+      </button>
+      <button onclick="switchTab('water')" id="tab-water" class="tab-btn flex-1 py-3 px-4 rounded-lg text-xs font-extrabold transition flex items-center justify-center space-x-2 text-slate-500 hover:bg-slate-50">
+        <span>💧 수분 트래커</span>
+      </button>
+      <button onclick="switchTab('supplements')" id="tab-supplements" class="tab-btn flex-1 py-3 px-4 rounded-lg text-xs font-extrabold transition flex items-center justify-center space-x-2 text-slate-500 hover:bg-slate-50">
+        <span>💊 스마트 영양제</span>
+      </button>
+      <button onclick="switchTab('meals')" id="tab-meals" class="tab-btn flex-1 py-3 px-4 rounded-lg text-xs font-extrabold transition flex items-center justify-center space-x-2 text-slate-500 hover:bg-slate-50">
+        <span>🥗 AI 식단 분석</span>
+      </button>
+    </div>
+
+    <!-- =====================================
+        TAB CONTENT 1: 종합 대시보드
+    ===================================== -->
+    <section id="content-dashboard" class="space-y-6">
+      
+      <!-- 당일 오버뷰 미니보드 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 수분 성취도 -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-[10px] font-bold text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md">수분 타겟</span>
+            <span class="text-xl">💧</span>
+          </div>
+          <h3 class="text-2xl font-black mt-4 text-slate-800" id="dashWaterVolume">0 <span class="text-xs font-normal text-slate-400">/ 2,000 ml</span></h3>
+          <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+            <div id="dashWaterBar" class="bg-sky-400 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-3" id="dashWaterStatus">목표 충족을 위해 분발하세요!</p>
+        </div>
+
+        <!-- 영양제 이행률 -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md">영양제 복용률</span>
+            <span class="text-xl">💊</span>
+          </div>
+          <h3 class="text-2xl font-black mt-4 text-slate-800" id="dashSuppCount">0 <span class="text-xs font-normal text-slate-400">개 복용 중</span></h3>
+          <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+            <div id="dashSuppBar" class="bg-amber-400 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-3">아침/점심/저녁 잊지 말고 섭취</p>
+        </div>
+
+        <!-- 식단 총 단백질량 -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">식단 단백질</span>
+            <span class="text-xl">🥩</span>
+          </div>
+          <h3 class="text-2xl font-black mt-4 text-slate-800" id="dashMealProtein">0 <span class="text-xs font-normal text-slate-400">/ 75 g 권장</span></h3>
+          <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+            <div id="dashMealBar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-3">일 평균 근감소 예방 기준 타겟</p>
+        </div>
+      </div>
+
+      <!-- 영양소 오남용 및 과량 복용 경고 전광판 -->
+      <div id="crossWarningPanel" class="bg-rose-50 border border-rose-100 rounded-2xl p-5 shadow-sm hidden">
+        <div class="flex items-center space-x-2 text-rose-700 font-extrabold mb-3 text-xs">
+          <span class="text-base">⚠️</span>
+          <span>복용 성분 안전 기준 초과 위험 경고</span>
+        </div>
+        <div id="crossWarningList" class="space-y-2">
+          <!-- 위험 경고 목록 동적 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 누적 통계 시각화 섹션 -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-sm font-bold text-slate-700">📊 지난 7일간의 누적 웰니스 리포트</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">신체 대사 안정을 위한 수분 및 영양제 규칙성 비교</p>
+          </div>
+          <span class="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold">통계 업데이트 완료</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 수분 7일 차트 -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <h4 class="text-[11px] font-bold text-slate-500 mb-4 flex justify-between">
+              <span>💧 요일별 수분 섭취 변화량 (2,000ml 기준)</span>
+              <span id="waterAchieveDayCount" class="text-sky-500 font-bold">누적 0일 달성</span>
+            </h4>
+            <div class="flex items-end justify-between h-32 pt-4 px-2" id="waterWeeklyChart">
+              <!-- JS에서 동적 막대 생성 -->
+            </div>
+          </div>
+
+          <!-- 영양제 준수율 리포트 -->
+          <div class="border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
+            <h4 class="text-[11px] font-bold text-slate-500 mb-2">💊 주간 평균 영양제 섭취 규율</h4>
+            <div class="space-y-4 py-4">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-500">영양제 복용 완수율</span>
+                <span class="font-extrabold text-amber-600" id="weeklySuppRateText">0%</span>
+              </div>
+              <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                <div id="weeklySuppProgressBar" class="bg-amber-400 h-full transition-all duration-700" style="width: 0%"></div>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-relaxed">
+                ※ 영양제는 불규칙적인 섭취보다는 매일 고정된 시간에 챙겨 드실 때 인체 생체이용률과 면역 반응이 일정하게 유지되는 연구 결과가 있습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =====================================
+        TAB CONTENT 2: 수분 트래커
+    ===================================== -->
+    <section id="content-water" class="space-y-6 hidden">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center relative overflow-hidden">
+        <span class="absolute top-4 right-4 text-5xl opacity-5">💧</span>
+        <h3 class="text-sm font-bold text-slate-700">💧 스마트 수분 보충실</h3>
+        <p class="text-[11px] text-slate-400 mt-1">오늘 섭취한 물의 총량과 비율을 가시적으로 나타냅니다.</p>
+
+        <!-- 대형 컵 애니메이션 물 채우기 -->
+        <div class="my-8 flex justify-center">
+          <div class="w-44 h-60 border-4 border-slate-200 rounded-b-3xl rounded-t-md relative overflow-hidden bg-slate-100/50 shadow-inner">
+            <div class="absolute inset-x-0 bottom-0 top-0 flex flex-col justify-end">
+              <div id="glassWaterLevel" class="bg-gradient-to-t from-sky-500 to-sky-300 transition-all duration-700 w-full relative" style="height: 0%">
+                <div class="water-wave absolute -top-2 left-0 right-0 h-2 bg-sky-300 opacity-60 rounded-full"></div>
+                <div class="text-white font-extrabold text-xs absolute inset-0 flex items-center justify-center" id="glassPercentText">0%</div>
+              </div>
+            </div>
+            <!-- 수분 레벨 점선 가이드 -->
+            <div class="absolute inset-0 flex flex-col justify-between py-4 text-[9px] text-slate-400 font-bold pointer-events-none">
+              <div class="border-b border-dashed border-slate-200 pl-2 text-left">2,000ml (권장 목표)</div>
+              <div class="border-b border-dashed border-slate-200 pl-2 text-left">1,500ml</div>
+              <div class="border-b border-dashed border-slate-200 pl-2 text-left">1,000ml</div>
+              <div class="border-b border-dashed border-slate-200 pl-2 text-left">500ml</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-slate-800 text-sm font-bold">
+          오늘 총 섭취량: <span class="text-sky-500 text-2xl font-black" id="waterVolumeLabel">0</span> ml
+        </div>
+
+        <!-- 물 추가 퀵 버튼 목록 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
+          <button onclick="addWaterVolume(180)" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-100 rounded-xl p-4 transition flex flex-col items-center justify-center space-y-2">
+            <span class="text-2xl">🥛</span>
+            <span class="font-bold text-xs">일반 종이컵 1잔</span>
+            <span class="text-[10px] bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full font-bold">+ 180 ml</span>
+          </button>
+
+          <button onclick="addWaterVolume(300)" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-100 rounded-xl p-4 transition flex flex-col items-center justify-center space-y-2">
+            <span class="text-2xl">🥤</span>
+            <span class="font-bold text-xs">300ml 유리컵 1잔</span>
+            <span class="text-[10px] bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full font-bold">+ 300 ml</span>
+          </button>
+
+          <button onclick="addWaterVolume(500)" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-100 rounded-xl p-4 transition flex flex-col items-center justify-center space-y-2 col-span-2 sm:col-span-1">
+            <span class="text-2xl">🧉</span>
+            <span class="font-bold text-xs">개인 텀블러 1잔</span>
+            <span class="text-[10px] bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full font-bold">+ 500 ml</span>
+          </button>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button onclick="resetWaterVolume()" class="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold">오늘 수분 마신 기록 리셋</button>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-100 space-y-3">
+        <h4 class="font-bold text-slate-700 text-xs">💡 수분 공급의 과학적 건강 코칭 상식</h4>
+        <div class="text-[11px] text-slate-500 leading-relaxed space-y-2">
+          <p><strong>아침 공복에 마시는 첫 물의 가치:</strong> 기상 직후의 공복 상태에서 마시는 미온수는 장기의 연동운동을 원활하게 유도하며 밤사이 침묵하던 신진대사를 깨워 노폐물 배출 속도를 촉진합니다.</p>
+          <p><strong>갈증을 느꼈다면 이미 지연 상태:</strong> 뇌에서 갈증을 자각할 때는 세포 내 수분이 2%가량 이미 감소하여 탈수가 개시된 상황입니다. 따라서 1시간 주기마다 잔 수 기반으로 나누어 음용하는 것이 바람직합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================
+        TAB CONTENT 3: 스마트 영양제 시스템
+    ===================================== -->
+    <section id="content-supplements" class="space-y-6 hidden">
+      
+      <!-- 신규 등록 카드 양식 -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center space-x-1.5">
+          <span>➕ 일일 복용 영양제 라이브러리 추가</span>
+        </h3>
+        
+        <form id="suppAddForm" onsubmit="registerSupplement(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">영양 제품명</label>
+              <input type="text" id="suppNameInput" placeholder="예: 징크 프리미엄 아연" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 text-slate-700" required>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">주요 단일 성분 매핑</label>
+              <select id="suppIngSelect" onchange="updateTimingGuideTip()" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                <option value="아연">아연 (Zinc)</option>
+                <option value="비타민D">비타민D (Vitamin D)</option>
+                <option value="오메가3">오메가3 (Omega-3)</option>
+                <option value="루테인">루테인 (Lutein)</option>
+                <option value="프로바이오틱스">프로바이오틱스 (Probiotics)</option>
+                <option value="철분">철분 (Iron)</option>
+                <option value="비타민C">비타민C (Vitamin C)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">복용 주기 지정</label>
+              <select id="suppTimeSelect" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                <option value="morning">🌅 아침 복용</option>
+                <option value="lunch">☀️ 점심 복용</option>
+                <option value="evening">🌙 저녁 복용</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">제품 함량 입력</label>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="suppDoseInput" placeholder="함량 수치" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 text-slate-700" required>
+                <span id="suppUnitIndicator" class="text-xs text-slate-500 font-bold w-12">mg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 실시간 추천 타이밍 코칭 전광판 -->
+          <div class="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-500 text-[11px] text-amber-900 leading-relaxed" id="suppTimingAlert">
+            💡 <strong>아연 복용 추천 타이밍:</strong> 식후 복용 권장 (공복 복용 시 가벼운 메스꺼움이나 위장 장애를 유발할 수 있습니다.)
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2 rounded-lg transition">
+              복용 스케줄에 추가
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 타임라인 체크박스 -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center justify-between">
+          <span>📋 오늘 타임라인별 복용 체크리스트</span>
+          <span class="text-[10px] text-slate-400">체크 시 완료 데이터가 자동으로 집계됩니다.</span>
+        </h3>
+
+        <div id="supplementTimeline" class="space-y-6">
+          <!-- JS에서 복용 리스트 바인딩 -->
+        </div>
+      </div>
+
+      <!-- 권장 한도 정보 테이블 -->
+      <div class="bg-slate-100 p-5 rounded-2xl">
+        <h4 class="font-bold text-slate-700 text-xs mb-3">⚠️ 일일 섭취 한계 지침 (식약처 가이드라인 준수)</h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px] text-slate-500">
+          <div class="bg-white p-3 rounded-xl shadow-xs">
+            <p class="font-extrabold text-slate-700">비타민D</p>
+            <p class="mt-1">상한치: 4,000 IU</p>
+            <p class="text-[9px] text-slate-400">지용성 골밀도 건강</p>
+          </div>
+          <div class="bg-white p-3 rounded-xl shadow-xs">
+            <p class="font-extrabold text-slate-700">아연</p>
+            <p class="mt-1">상한치: 35 mg</p>
+            <p class="text-[9px] text-slate-400">면역 대사 기능</p>
+          </div>
+          <div class="bg-white p-3 rounded-xl shadow-xs">
+            <p class="font-extrabold text-slate-700">오메가3</p>
+            <p class="mt-1">상한치: 2,000 mg</p>
+            <p class="text-[9px] text-slate-400">혈행 장애 개선</p>
+          </div>
+          <div class="bg-white p-3 rounded-xl shadow-xs">
+            <p class="font-extrabold text-slate-700">루테인</p>
+            <p class="mt-1">상한치: 20 mg</p>
+            <p class="text-[9px] text-slate-400">황반 안구 피로</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================
+        TAB CONTENT 4: AI 식단 피드백
+    ===================================== -->
+    <section id="content-meals" class="space-y-6 hidden">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-sm font-bold text-slate-700">🥗 지능형 AI 식단 스캐너</h3>
+        <p class="text-[11px] text-slate-400 mt-0.5">식사 사진을 촬영하여 등록하면 자동으로 탄단지 함량을 도출하고, 오류 시 수정 보정할 수 있습니다.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <!-- 아침 식단 -->
+          <div class="border border-slate-100 rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-slate-600">🌅 아침 식사</span>
+                <span id="mealLabel-morning" class="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">미등록</span>
+              </div>
+              <div id="mealPic-morning" class="w-full h-24 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 mb-2 overflow-hidden text-xs">
+                [식사 이미지 없음]
+              </div>
+              <div id="mealBody-morning" class="text-xs text-slate-500 space-y-1">
+                <p class="font-extrabold text-slate-700 text-xs text-center py-4">기록된 정보가 없습니다.</p>
+              </div>
+            </div>
+            <button onclick="openMealEditor('morning')" class="mt-4 w-full bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-700 transition">📷 스캔 및 등록</button>
+          </div>
+
+          <!-- 점심 식단 -->
+          <div class="border border-slate-100 rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-slate-600">☀️ 점심 식사</span>
+                <span id="mealLabel-lunch" class="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">미등록</span>
+              </div>
+              <div id="mealPic-lunch" class="w-full h-24 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 mb-2 overflow-hidden text-xs">
+                [식사 이미지 없음]
+              </div>
+              <div id="mealBody-lunch" class="text-xs text-slate-500 space-y-1">
+                <p class="font-extrabold text-slate-700 text-xs text-center py-4">기록된 정보가 없습니다.</p>
+              </div>
+            </div>
+            <button onclick="openMealEditor('lunch')" class="mt-4 w-full bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-700 transition">📷 스캔 및 등록</button>
+          </div>
+
+          <!-- 저녁 식단 -->
+          <div class="border border-slate-100 rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-slate-600">🌙 저녁 식사</span>
+                <span id="mealLabel-dinner" class="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">미등록</span>
+              </div>
+              <div id="mealPic-dinner" class="w-full h-24 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 mb-2 overflow-hidden text-xs">
+                [식사 이미지 없음]
+              </div>
+              <div id="mealBody-dinner" class="text-xs text-slate-500 space-y-1">
+                <p class="font-extrabold text-slate-700 text-xs text-center py-4">기록된 정보가 없습니다.</p>
+              </div>
+            </div>
+            <button onclick="openMealEditor('dinner')" class="mt-4 w-full bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-700 transition">📷 스캔 및 등록</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =====================================
+      MODAL 1: AI 스캔 시뮬레이션 및 데이터 보정 모달
+  ===================================== -->
+  <div id="mealEditorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-emerald-600 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm flex items-center space-x-2">
+          <span>📷 AI 비전 스캐너 & 보정 패널</span>
+          <span class="text-[10px] bg-emerald-500 px-2 py-0.5 rounded" id="targetMealTypeText">아침</span>
+        </h3>
+        <button onclick="closeMealEditor()" class="text-white hover:text-slate-200 font-bold text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+        
+        <!-- 이미지 업로드 박스 -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold text-slate-500">1. 식단 사진 등록</label>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col items-center justify-center relative min-h-36">
+            <input type="file" id="mealImageFileInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleMealImageUpload(event)">
+            
+            <div id="uploadPreviewContainer" class="hidden w-full h-36 relative">
+              <img id="uploadPreviewImg" src="" alt="식단 원본 사진" class="w-full h-full object-cover rounded-lg">
+              <button onclick="removeUploadedMealImage(event)" class="absolute top-2 right-2 bg-slate-900/70 text-white px-2 py-0.5 rounded text-[10px] font-bold">삭제</button>
+            </div>
+
+            <div id="uploadPlaceholder" class="text-center">
+              <span class="text-3xl">🖼️</span>
+              <p class="text-xs text-slate-400 mt-1">이 영역을 클릭하여 음식 사진 첨부</p>
+              <p class="text-[9px] text-slate-400">파일 첨부 시 AI가 자동 분류를 개시합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 데모 시뮬레이션 버튼 가이드 -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold text-slate-500">💡 원클릭 AI 시뮬레이션 체험 버튼</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="applyMealDemoPreset('salad')" class="bg-sky-50 text-sky-800 border border-sky-100 py-1 px-2 rounded-lg text-[10px] font-bold hover:bg-sky-100 transition">🥗 샐러드 식단</button>
+            <button onclick="applyMealDemoPreset('chickenRice')" class="bg-emerald-50 text-emerald-800 border border-emerald-100 py-1 px-2 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition">🍚 한식 정찬</button>
+            <button onclick="applyMealDemoPreset('fastfood')" class="bg-rose-50 text-rose-800 border border-rose-100 py-1 px-2 rounded-lg text-[10px] font-bold hover:bg-rose-100 transition">🍔 패스트푸드</button>
+          </div>
+        </div>
+
+        <!-- AI 피드백 상태바 -->
+        <div id="aiScanningIndicator" class="bg-emerald-50 border border-emerald-100 p-3 rounded-lg flex items-center space-x-2 text-xs text-emerald-800 hidden">
+          <svg class="animate-spin h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span class="font-bold">멀티모달 AI 비전 엔진이 성분을 정밀 추출 중입니다...</span>
+        </div>
+
+        <!-- 수정 보정 컨트롤러 폼 -->
+        <div class="border-t border-slate-100 pt-4 space-y-3">
+          <label class="block text-xs font-bold text-slate-600">2. 성분 보정 및 직접 수정</label>
+          
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400">음식 및 정량 정보</label>
+            <input type="text" id="editFoodName" placeholder="예: 닭가슴살 샐러드 1팩, 현미밥" class="w-full border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-700 focus:ring-1 focus:ring-emerald-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400">칼로리 (kcal)</label>
+              <input type="number" id="editCalories" placeholder="예: 420" class="w-full border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-700 focus:ring-1 focus:ring-emerald-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400">단백질 (g)</label>
+              <input type="number" id="editProtein" placeholder="예: 25" class="w-full border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-700 focus:ring-1 focus:ring-emerald-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400">탄수화물 (g)</label>
+              <input type="number" id="editCarbs" placeholder="예: 35" class="w-full border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-700 focus:ring-1 focus:ring-emerald-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400">지방 (g)</label>
+              <input type="number" id="editFat" placeholder="예: 8" class="w-full border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-700 focus:ring-1 focus:ring-emerald-500">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end space-x-2">
+        <button onclick="closeMealEditor()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold transition">닫기</button>
+        <button onclick="saveMealData()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">저장 및 동기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 푸터 및 출처/참고 정보 -->
+  <footer class="max-w-4xl mx-auto px-4 mt-12 pt-6 border-t border-slate-200 text-center text-slate-400 text-[10px] space-y-2">
+    <p>© 2026 AI Wellness Coach Personal System. All Rights Reserved.</p>
+    <div class="bg-slate-100 p-4 rounded-xl text-left leading-relaxed space-y-1">
+      <p class="font-extrabold text-slate-500">📚 신뢰할 수 있는 학술 가이드 및 참고 출처 링크:</p>
+      <ul class="list-disc list-inside space-y-0.5 text-[9px] text-slate-400">
+        <li><a href="https://www.mfds.go.kr" target="_blank" class="hover:underline text-emerald-600 font-bold">[식품의약품안전처]</a> 한국인의 영양 섭취 기준 상한치 연구자료</li>
+        <li><a href="https://www.kdca.go.kr" target="_blank" class="hover:underline text-emerald-600 font-bold">[질병관리청]</a> 국민건강영양조사 기반 성인 하루 권장 수분 및 단백질(g) 가이드라인</li>
+        <li><a href="https://www.nutrition.or.kr" target="_blank" class="hover:underline text-emerald-600 font-bold">[한국영양학회]</a> 한국인 영양소 섭취기준 (KDRIs) 의약 외 성분 중복 방지 매뉴얼</li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- =====================================
+      CORE JAVASCRIPT LOGICS
+  ===================================== -->
+  <script>
+    // 식약처 섭취 가이드라인 원천 데이터
+    const INGREDIENT_GUIDE = {
+      '아연': { recommended: '8.5mg', maxLimit: 35, unit: 'mg', timing: 'post-meal', timingDesc: '식후 복용 권장 (공복 복용 시 가벼운 메스꺼움이나 위장 장애를 유발할 수 있습니다.)' },
+      '비타민D': { recommended: '400IU - 1000IU', maxLimit: 4000, unit: 'IU', timing: 'post-meal', timingDesc: '식후 복용 권장 (지용성 성분으로 식사 중이나 식사 후 기름기 있는 음식과 함께 흡수 시 생체이용률이 극대화됩니다.)' },
+      '오메가3': { recommended: '500mg - 1000mg', maxLimit: 2000, unit: 'mg', timing: 'post-meal', timingDesc: '식후 복용 권장 (기름 성분이므로 위장 장애 및 특유의 어취 역류 현상을 방지하기 위해 든든한 식후 복용을 강력히 추천합니다.)' },
+      '루테인': { recommended: '10mg - 20mg', maxLimit: 20, unit: 'mg', timing: 'post-meal', timingDesc: '식후 복용 권장 (지용성 황반 고정 성분이므로 아침이나 점심 식사 직후가 흡수율에 가장 유익합니다.)' },
+      '프로바이오틱스': { recommended: '1억 - 100억 CFU', maxLimit: 10000000000, unit: 'CFU', timing: 'pre-meal', timingDesc: '식전 공복 복용 권장 (위산에 비교적 예민하므로 취침 직전 혹은 이른 기상 후 미온수 한 잔과 함께 음용하는 것이 최고 효율을 냅니다.)' },
+      '철분': { recommended: '12mg', maxLimit: 45, unit: 'mg', timing: 'pre-meal', timingDesc: '식전 공복 복용 권장 (공복 상태일 때 고유 체내 흡수 능력이 높습니다. 속 쓰림 등이 있을 경우에만 비타민C와 병용 섭취하거나 식후로 타협할 수 있습니다.)' },
+      '비타민C': { recommended: '100mg', maxLimit: 2000, unit: 'mg', timing: 'post-meal', timingDesc: '식후 복용 권장 (강한 산성이므로 민감성 위벽에 속쓰림이나 경미한 위염을 초래할 수 있으니 아침/점심 식사 직후가 이상적입니다.)' }
+    };
+
+    // 식단 시뮬레이션 데이터 프리셋
+    const DEMO_PRESETS = {
+      salad: {
+        foodName: "수비드 닭가슴살 그린 아보카도 샐러드",
+        calories: 395,
+        carbs: 22,
+        protein: 34,
+        fat: 11,
+        feedback: "이상적인 웰에이징 단백질 밀착 식단입니다. 34g에 달하는 훌륭한 단백질과 불포화지방산(아보카도)이 조화롭게 작용하고 있습니다. 👍"
+      },
+      chickenRice: {
+        foodName: "정갈한 한식 (현미 잡곡밥, 구운 생선, 야채 찬)",
+        calories: 520,
+        carbs: 68,
+        protein: 26,
+        fat: 9,
+        feedback: "가장 안정적인 저지방 고식이섬유 복합 식사입니다. 쌀눈에 함유된 비타민B군과 더불어 등푸른생선의 좋은 오메가3 지방산을 식사에서 자연스럽게 추가했습니다."
+      },
+      fastfood: {
+        foodName: "베이컨 더블 치즈 버거 & 감자튀김 세트",
+        calories: 940,
+        carbs: 115,
+        protein: 18,
+        fat: 42,
+        feedback: "한 끼 열량 및 정제 탄수화물, 포화 지방이 과도하게 집중되었습니다. 반면에 필수 아미노산(단백질)은 칼로리 대비 적으므로, 다음 식사는 샐러드 및 수분 위주로 간을 비워내 주세요. ⚠️"
+      }
+    };
+
+    // 로컬 스토리지 또는 초기 기본 상태
+    let state = {
+      selectedDate: new Date().toISOString().split('T')[0],
+      water: {
+        '2026-06-11': 1600,
+        '2026-06-12': 2100,
+        [new Date().toISOString().split('T')[0]]: 300 // 오늘 초기값
+      },
+      supplements: [
+        { id: '1', name: '액티브 비타민D 2000', ingredient: '비타민D', time: 'morning', dose: 2000 },
+        { id: '2', name: '뉴트리 면역 아연 플러스', ingredient: '아연', time: 'morning', dose: 20 },
+        { id: '3', name: '웰스 올가 오메가3', ingredient: '오메가3', time: 'lunch', dose: 1000 }
+      ],
+      supplementCheck: {
+        '2026-06-12': { '1': true, '2': true, '3': false }
+      },
+      meals: {
+        '2026-06-12': {
+          morning: { foodName: "오트밀 사과 그릭요거트 볼", calories: 280, carbs: 45, protein: 12, fat: 5, imageUrl: null, feedback: "가볍고 소화 기능에 긍정적인 뛰어난 기상 식단입니다." },
+          lunch: DEMO_PRESETS.chickenRice,
+          dinner: null
+        }
+      },
+      alarmEnabled: true
+    };
+
+    // 탭 상태 및 모달 변수
+    let currentTab = 'dashboard';
+    let currentEditingMealType = 'lunch';
+
+    // 1. 앱 기동 초기 세팅 및 LocalStorage 복원
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStateFromStorage();
+      
+      // 날짜 초기값 세팅
+      document.getElementById('dateInput').value = state.selectedDate;
+      
+      // 엘리먼트 이벤트 리스너 등록
+      document.getElementById('dateInput').addEventListener('change', (e) => {
+        state.selectedDate = e.target.value;
+        saveStateToStorage();
+        syncAllUI();
+      });
+
+      document.getElementById('prevDayBtn').addEventListener('click', () => {
+        const d = new Date(state.selectedDate);
+        d.setDate(d.getDate() - 1);
+        state.selectedDate = d.toISOString().split('T')[0];
+        document.getElementById('dateInput').value = state.selectedDate;
+        saveStateToStorage();
+        syncAllUI();
+      });
+
+      document.getElementById('nextDayBtn').addEventListener('click', () => {
+        const d = new Date(state.selectedDate);
+        d.setDate(d.getDate() + 1);
+        state.selectedDate = d.toISOString().split('T')[0];
+        document.getElementById('dateInput').value = state.selectedDate;
+        saveStateToStorage();
+        syncAllUI();
+      });
+
+      document.getElementById('alarmToggleBtn').addEventListener('click', () => {
+        state.alarmEnabled = !state.alarmEnabled;
+        saveStateToStorage();
+        syncAllUI();
+        triggerFloatingBanner("🔔 알림 토글", `데모 푸시 알림이 ${state.alarmEnabled ? '활성화' : '비활성화'} 되었습니다.`);
+      });
+
+      // 영양제 성분 섭취 타임 선택 시 유도 가이드 팁 갱신
+      updateTimingGuideTip();
+
+      // [신규] 워드 다운로드 버튼 바인딩
+      document.getElementById('downloadWordBtn').addEventListener('click', downloadWordReport);
+
+      // 60초 주기 수분 알림 타이머 가동 (데모용)
+      setInterval(() => {
+        if (state.alarmEnabled) {
+          triggerFloatingBanner("💧 규칙적인 수분 공급 타이밍", "장시간 물을 음용하지 않으면 피가 다소 정체될 수 있습니다. 종이컵이나 300ml 유리컵 버튼을 클릭해 몸을 깨우세요.");
+        }
+      }, 90000);
+
+      // 전체 렌더링 동기화
+      syncAllUI();
+    });
+
+    // LocalStorage 영속성
+    function saveStateToStorage() {
+      localStorage.setItem('ai_wellness_state', JSON.stringify(state));
+    }
+
+    function loadStateFromStorage() {
+      const stored = localStorage.getItem('ai_wellness_state');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            state = { ...state, ...parsed };
+          }
+        } catch (e) {
+          console.warn("로컬 데이터 파싱 에러 - 초기값으로 리셋합니다.", e);
+        }
+      }
+    }
+
+    // 2. 통합 탭 전환 엔진
+    function switchTab(tabName) {
+      currentTab = tabName;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-500', 'text-white');
+        btn.classList.add('text-slate-500', 'hover:bg-slate-50');
+      });
+
+      const activeBtn = document.getElementById(`tab-${tabName}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-500', 'hover:bg-slate-50');
+        activeBtn.classList.add('bg-emerald-500', 'text-white');
+      }
+
+      // 탭 섹션 보이기/숨기기
+      ['dashboard', 'water', 'supplements', 'meals'].forEach(sec => {
+        const panel = document.getElementById(`content-${sec}`);
+        if (panel) {
+          if (sec === tabName) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+      });
+
+      syncAllUI();
+    }
+
+    // 3. 수분 트래커 관련 비즈니스 로직
+    function addWaterVolume(amount) {
+      const date = state.selectedDate;
+      const cur = state.water[date] || 0;
+      state.water[date] = cur + amount;
+      saveStateToStorage();
+      syncAllUI();
+
+      if (state.water[date] >= 2000 && cur < 2000) {
+        triggerFloatingBanner("🎉 성취 달성!", "하루 수분 마시기 목표치인 2.0L(2,000ml)를 성실히 채우셨습니다. 축하드립니다!");
+      } else {
+        triggerFloatingBanner("💧 수분 추가 완료", `당일 수분 축적량에 +${amount}ml 가중되었습니다.`);
+      }
+    }
+
+    function resetWaterVolume() {
+      state.water[state.selectedDate] = 0;
+      saveStateToStorage();
+      syncAllUI();
+      triggerFloatingBanner("💧 리셋", "선택일의 수분 음용량이 0ml로 정화되었습니다.");
+    }
+
+    // 4. 영양제 시스템 추가 및 중복 검증
+    function updateTimingGuideTip() {
+      const ing = document.getElementById('suppIngSelect').value;
+      const unitEl = document.getElementById('suppUnitIndicator');
+      const tipBox = document.getElementById('suppTimingAlert');
+      
+      const guide = INGREDIENT_GUIDE[ing];
+      if (guide) {
+        unitEl.textContent = guide.unit;
+        tipBox.innerHTML = `⚙️ <strong>${ing} 최적 타이밍:</strong> ${guide.timingDesc}`;
+      }
+    }
+
+    function registerSupplement(e) {
+      e.preventDefault();
+      const name = document.getElementById('suppNameInput').value.trim();
+      const ingredient = document.getElementById('suppIngSelect').value;
+      const time = document.getElementById('suppTimeSelect').value;
+      const dose = parseFloat(document.getElementById('suppDoseInput').value) || 0;
+
+      if (!name) return;
+
+      const newSupp = {
+        id: Date.now().toString(),
+        name,
+        ingredient,
+        time,
+        dose
+      };
+
+      state.supplements.push(newSupp);
+      saveStateToStorage();
+      
+      // 입력 폼 비우기
+      document.getElementById('suppNameInput').value = '';
+      document.getElementById('suppDoseInput').value = '';
+
+      syncAllUI();
+      triggerFloatingBanner("💊 신규 영양제 추가 완료", `제품 [${name}]이 타임라인 스케줄에 연계 등록되었습니다.`);
+    }
+
+    function deleteSupplement(id) {
+      state.supplements = state.supplements.filter(s => s.id !== id);
+      
+      // 체크 리스트에서도 지우기
+      Object.keys(state.supplementCheck).forEach(d => {
+        if (state.supplementCheck[d]) {
+          delete state.supplementCheck[d][id];
+        }
+      });
+
+      saveStateToStorage();
+      syncAllUI();
+      triggerFloatingBanner("🗑️ 삭제 완료", "영양 제품이 타임라인에서 영구 제외되었습니다.");
+    }
+
+    function toggleSuppCheck(suppId) {
+      const date = state.selectedDate;
+      if (!state.supplementCheck[date]) {
+        state.supplementCheck[date] = {};
+      }
+      state.supplementCheck[date][suppId] = !state.supplementCheck[date][suppId];
+      saveStateToStorage();
+      syncAllUI();
+    }
+
+    // 성분 중복 및 과다 섭취 위험성 평가 엔진
+    function evaluateSupplementWarnings() {
+      const ingredientMap = {};
+      const warnings = [];
+
+      // 현재 등록된 영양소들 집계
+      state.supplements.forEach(supp => {
+        if (!ingredientMap[supp.ingredient]) {
+          ingredientMap[supp.ingredient] = { total: 0, sources: [] };
+        }
+        ingredientMap[supp.ingredient].total += supp.dose;
+        ingredientMap[supp.ingredient].sources.push(supp.name);
+      });
+
+      // 한계 기준 교차 분석
+      Object.keys(ingredientMap).forEach(ing => {
+        const data = ingredientMap[ing];
+        const guide = INGREDIENT_GUIDE[ing];
+        if (guide) {
+          // 1. 중복 복용 감지
+          if (data.sources.length > 1) {
+            warnings.push({
+              ingredient: ing,
+              message: `[중복 섭취] '${ing}' 성분이 복수의 제품(${data.sources.join(', ')})에 중복 검출되었습니다. 성분이 겹쳐 원치 않는 신장 과로가 생기지 않도록 주의하세요.`
+            });
+          }
+          // 2. 일일 상한선 과도 초과 검사
+          if (data.total > guide.maxLimit) {
+            const unitText = guide.unit;
+            warnings.push({
+              ingredient: ing,
+              message: `[섭취 상한량 초과] '${ing}' 성분의 당일 총 복용량이 ${data.total}${unitText}로, 식약처 안전 상한 허용선인 ${guide.maxLimit}${unitText}을 초과해 오남용 우려가 큽니다. 함량 조절이 필요합니다.`
+            });
+          }
+        }
+      });
+
+      return warnings;
+    }
+
+    // 5. AI 식단 및 모달 제어
+    function openMealEditor(mealType) {
+      currentEditingMealType = mealType;
+      document.getElementById('targetMealTypeText').textContent = 
+        mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁';
+
+      // 폼 초기화
+      const dayMeals = state.meals[state.selectedDate] || {};
+      const meal = dayMeals[mealType] || {};
+
+      document.getElementById('editFoodName').value = meal.foodName || '';
+      document.getElementById('editCalories').value = meal.calories || '';
+      document.getElementById('editProtein').value = meal.protein || '';
+      document.getElementById('editCarbs').value = meal.carbs || '';
+      document.getElementById('editFat').value = meal.fat || '';
+
+      // 이미지 프리뷰 초기화
+      if (meal.imageUrl) {
+        document.getElementById('uploadPreviewImg').src = meal.imageUrl;
+        document.getElementById('uploadPreviewContainer').classList.remove('hidden');
+        document.getElementById('uploadPlaceholder').classList.add('hidden');
+      } else {
+        document.getElementById('uploadPreviewImg').src = '';
+        document.getElementById('uploadPreviewContainer').classList.add('hidden');
+        document.getElementById('uploadPlaceholder').classList.remove('hidden');
+      }
+
+      document.getElementById('mealImageFileInput').value = '';
+      document.getElementById('aiScanningIndicator').classList.add('hidden');
+
+      document.getElementById('mealEditorModal').classList.remove('hidden');
+    }
+
+    function closeMealEditor() {
+      document.getElementById('mealEditorModal').classList.add('hidden');
+    }
+
+    function handleMealImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        document.getElementById('uploadPreviewImg').src = base64Data;
+        document.getElementById('uploadPreviewContainer').classList.remove('hidden');
+        document.getElementById('uploadPlaceholder').classList.add('hidden');
+
+        // AI 비전 자동 추출 시뮬레이션 개시
+        triggerAiVisionSimulation();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeUploadedMealImage(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      document.getElementById('uploadPreviewImg').src = '';
+      document.getElementById('uploadPreviewContainer').classList.add('hidden');
+      document.getElementById('uploadPlaceholder').classList.remove('hidden');
+      document.getElementById('mealImageFileInput').value = '';
+    }
+
+    // 인공지능 분석 가상 흐름 작동
+    function triggerAiVisionSimulation() {
+      const indicator = document.getElementById('aiScanningIndicator');
+      indicator.classList.remove('hidden');
+
+      // 1.5초 후 모의 인식 결과 도출
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+        const presets = ['salad', 'chickenRice', 'fastfood'];
+        const chosen = presets[Math.floor(Math.random() * presets.length)];
+        applyMealDemoPreset(chosen);
+        triggerFloatingBanner("🥗 AI 정밀 판단 통과", "사진 구조 상에서 식단 종류 및 영양 배합 성분을 추정 반영했습니다.");
+      }, 1500);
+    }
+
+    function applyMealDemoPreset(presetKey) {
+      const data = DEMO_PRESETS[presetKey];
+      if (data) {
+        document.getElementById('editFoodName').value = data.foodName;
+        document.getElementById('editCalories').value = data.calories;
+        document.getElementById('editProtein').value = data.protein;
+        document.getElementById('editCarbs').value = data.carbs;
+        document.getElementById('editFat').value = data.fat;
+      }
+    }
+
+    // 식단 단백질 맞춤 가상 분석 피드백 연산기
+    function compileProteinFeedback(foodName, proteinVal) {
+      const p = parseFloat(proteinVal) || 0;
+      if (!foodName.trim()) return "기록 없음";
+
+      let fb = `식사 [${foodName}] 분석: `;
+      if (p < 15) {
+        fb += "일일 권장량 대비 단백질 섭취가 부실합니다. 닭가슴살 100g 또는 단백질 음료 혹은 구운 계란 등을 보강하여 세포 영양 합성을 촉진하십시오. 🍳";
+      } else if (p >= 15 && p <= 35) {
+        fb += "이상적인 균형식단입니다. 한 끼 대사에 가장 알맞은 아미노산 비율을 충족하고 있으므로 꾸준히 식문화를 유지해 나가시기 바랍니다. ✨";
+      } else {
+        fb += "고단백질 과밀 식단입니다. 일시적인 벌크업 목적이 아니라면 체내 요소 분해를 도울 수 있게 충분한 수분(물 400ml 이상)을 연동 섭취해 신장 피로를 상쇄시켜 주세요. 💧";
+      }
+      return fb;
+    }
+
+    function saveMealData() {
+      const date = state.selectedDate;
+      const foodName = document.getElementById('editFoodName').value.trim();
+      const calories = parseInt(document.getElementById('editCalories').value) || 0;
+      const protein = parseInt(document.getElementById('editProtein').value) || 0;
+      const carbs = parseInt(document.getElementById('editCarbs').value) || 0;
+      const fat = parseInt(document.getElementById('editFat').value) || 0;
+      const imageUrl = document.getElementById('uploadPreviewImg').src || null;
+
+      if (!foodName) {
+        alert("최소 음식명 정보는 기입하셔야 식단 기록이 가능합니다.");
+        return;
+      }
+
+      const feedback = compileProteinFeedback(foodName, protein);
+
+      if (!state.meals[date]) {
+        state.meals[date] = { morning: null, lunch: null, dinner: null };
+      }
+
+      state.meals[date][currentEditingMealType] = {
+        foodName,
+        calories,
+        protein,
+        carbs,
+        fat,
+        imageUrl: imageUrl && imageUrl.startsWith('data:') ? imageUrl : null,
+        feedback
+      };
+
+      saveStateToStorage();
+      syncAllUI();
+      closeMealEditor();
+      triggerFloatingBanner("🥗 식단 관리 갱신", "당일 시간대별 식단 영양 지표가 안전 갱신되었습니다.");
+    }
+
+    // 6. UI 동기화 총괄 엔진
+    function syncAllUI() {
+      const date = state.selectedDate;
+      document.getElementById('dateInput').value = date;
+
+      // 데이터 널 안전망 확보
+      if (!state.water[date]) state.water[date] = 0;
+      if (!state.supplementCheck[date]) state.supplementCheck[date] = {};
+      if (!state.meals[date]) state.meals[date] = { morning: null, lunch: null, dinner: null };
+
+      const dayWater = state.water[date] || 0;
+      const waterPercent = Math.min(Math.round((dayWater / 2000) * 100), 100);
+
+      // 알림 상태 동기화
+      document.getElementById('alarmStatusText').textContent = state.alarmEnabled ? 'ON' : 'OFF';
+      const toggleBtn = document.getElementById('alarmToggleBtn');
+      if (state.alarmEnabled) {
+        toggleBtn.className = "bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1";
+      } else {
+        toggleBtn.className = "bg-slate-500 hover:bg-slate-400 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1";
+      }
+
+      // 대시보드 뷰 정보 업데이트
+      document.getElementById('dashWaterVolume').innerHTML = `${dayWater} <span class="text-xs font-normal text-slate-400">/ 2,000 ml</span>`;
+      document.getElementById('dashWaterBar').style.width = `${waterPercent}%`;
+      document.getElementById('dashWaterStatus').textContent = dayWater >= 2000 ? "🎉 오늘 수분 미션 완수!" : `${2000 - dayWater}ml 가량 물을 보강해 주세요.`;
+
+      // 영양소 교차 경고 탐색 및 전광판 출력
+      const warnings = evaluateSupplementWarnings();
+      const crossPanel = document.getElementById('crossWarningPanel');
+      const crossList = document.getElementById('crossWarningList');
+      
+      if (warnings.length > 0) {
+        crossPanel.classList.remove('hidden');
+        crossList.innerHTML = warnings.map(w => `
+          <div class="text-xs text-rose-800 bg-white p-3 rounded-lg border-l-4 border-rose-500 shadow-xs leading-relaxed font-medium">
+            ${w.message}
+          </div>
+        `).join('');
+      } else {
+        crossPanel.classList.add('hidden');
+      }
+
+      // 영양제 복용 현황 동기화
+      const totalSuppCount = state.supplements.length;
+      const dayChecks = state.supplementCheck[date] || {};
+      const completedSuppCount = state.supplements.filter(s => dayChecks[s.id]).length;
+      const suppPercent = totalSuppCount > 0 ? Math.round((completedSuppCount / totalSuppCount) * 100) : 0;
+
+      document.getElementById('dashSuppCount').innerHTML = `${completedSuppCount} <span class="text-xs font-normal text-slate-400">/ ${totalSuppCount} 개 섭취</span>`;
+      document.getElementById('dashSuppBar').style.width = `${suppPercent}%`;
+
+      // 식단 단백질 총량 취합
+      const dayMeals = state.meals[date] || {};
+      let totalProtein = 0;
+      ['morning', 'lunch', 'dinner'].forEach(m => {
+        if (dayMeals[m]) totalProtein += dayMeals[m].protein;
+      });
+      const proteinPercent = Math.min(Math.round((totalProtein / 75) * 100), 100);
+      document.getElementById('dashMealProtein').innerHTML = `${totalProtein} <span class="text-xs font-normal text-slate-400">/ 75 g 권장</span>`;
+      document.getElementById('dashMealBar').style.width = `${proteinPercent}%`;
+
+      // 7일간 통계 계산 및 SVG 렌더링
+      renderWeeklyStatistics();
+
+      // 수분 페이지 수위 표시
+      document.getElementById('waterVolumeLabel').textContent = dayWater;
+      document.getElementById('glassWaterLevel').style.height = `${waterPercent}%`;
+      document.getElementById('glassPercentText').textContent = `${waterPercent}%`;
+
+      // 영양제 페이지 목록 구축
+      renderSupplementTimeline();
+
+      // 식단 페이지 카드 갱신
+      renderMealsCards();
+    }
+
+    // 7일 누적 통계 가시화
+    function renderWeeklyStatistics() {
+      const labels = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - 6 + i);
+        return d.toISOString().split('T')[0];
+      });
+
+      let waterSuccessDays = 0;
+      let totalPlannedSupplements = 0;
+      let totalCompletedSupplements = 0;
+
+      const chartContainer = document.getElementById('waterWeeklyChart');
+      chartContainer.innerHTML = '';
+
+      labels.forEach(day => {
+        const waterAmount = state.water[day] || 0;
+        const percent = Math.min((waterAmount / 2000) * 100, 100);
+        if (waterAmount >= 2000) waterSuccessDays++;
+
+        // 요일 한국어 변환
+        const dayName = ['일', '월', '화', '수', '목', '금', '토'][new Date(day).getDay()];
+        
+        // 막대 생성
+        const barWrapper = document.createElement('div');
+        barWrapper.className = "flex flex-col items-center flex-1";
+        barWrapper.innerHTML = `
+          <span class="text-[8px] font-bold text-slate-500 mb-1">${waterAmount}</span>
+          <div class="w-6 sm:w-8 bg-slate-100 rounded-t-md h-20 flex items-end overflow-hidden">
+            <div class="w-full rounded-t-md transition-all duration-700 ${waterAmount >= 2000 ? 'bg-sky-500' : 'bg-sky-300'}" style="height: ${percent}%"></div>
+          </div>
+          <span class="text-[10px] font-extrabold text-slate-400 mt-2">${dayName}</span>
+        `;
+        chartContainer.appendChild(barWrapper);
+
+        // 영양제 규칙성 수치 연산
+        const checks = state.supplementCheck[day] || {};
+        state.supplements.forEach(supp => {
+          totalPlannedSupplements++;
+          if (checks[supp.id]) {
+            totalCompletedSupplements++;
+          }
+        });
+      });
+
+      document.getElementById('waterAchieveDayCount').textContent = `누적 ${waterSuccessDays}일 달성 완료`;
+
+      const weeklySuppRate = totalPlannedSupplements > 0 ? Math.round((totalCompletedSupplements / totalPlannedSupplements) * 100) : 0;
+      document.getElementById('weeklySuppRateText').textContent = `${weeklySuppRate}%`;
+      document.getElementById('weeklySuppProgressBar').style.width = `${weeklySuppRate}%`;
+    }
+
+    // 영양제 타임라인 조립
+    function renderSupplementTimeline() {
+      const container = document.getElementById('supplementTimeline');
+      container.innerHTML = '';
+
+      const date = state.selectedDate;
+      const dayChecks = state.supplementCheck[date] || {};
+
+      const timelineBlocks = {
+        morning: { title: '🌅 아침 복용 스케줄', items: [] },
+        lunch: { title: '☀️ 점심 복용 스케줄', items: [] },
+        evening: { title: '🌙 저녁 복용 스케줄', items: [] }
+      };
+
+      state.supplements.forEach(s => {
+        if (timelineBlocks[s.time]) {
+          timelineBlocks[s.time].items.push(s);
+        }
+      });
+
+      let hasAnySupp = false;
+
+      Object.keys(timelineBlocks).forEach(timeKey => {
+        const block = timelineBlocks[timeKey];
+        if (block.items.length === 0) return;
+        hasAnySupp = true;
+
+        const blockDiv = document.createElement('div');
+        blockDiv.className = "border-b border-slate-100 pb-4 last:border-0 last:pb-0";
+        
+        let headerTitle = `<h4 class="font-bold text-xs text-slate-600 mb-3">${block.title}</h4>`;
+        let gridDiv = document.createElement('div');
+        gridDiv.className = "grid grid-cols-1 sm:grid-cols-2 gap-3";
+
+        block.items.forEach(supp => {
+          const isChecked = !!dayChecks[supp.id];
+          const guide = INGREDIENT_GUIDE[supp.ingredient] || {};
+          
+          const card = document.createElement('div');
+          card.className = `p-4 rounded-xl border transition flex items-start justify-between ${isChecked ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`;
+          card.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSuppCheck('${supp.id}')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer">
+                <span class="text-xs font-bold ${isChecked ? 'line-through text-slate-400' : 'text-slate-800'}">${supp.name}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 pl-6">
+                성분: ${supp.ingredient} (${supp.dose}${guide.unit || 'mg'})
+              </div>
+              <div class="text-[10px] text-emerald-700 pl-6 font-bold">
+                🕒 권장: ${guide.timing === 'post-meal' ? '식후 30분 이내' : '식전 아침 공복'}
+              </div>
+            </div>
+            <button onclick="deleteSupplement('${supp.id}')" class="text-[10px] text-rose-400 hover:text-rose-600 font-extrabold">삭제</button>
+          `;
+          gridDiv.appendChild(card);
+        });
+
+        blockDiv.innerHTML = headerTitle;
+        blockDiv.appendChild(gridDiv);
+        container.appendChild(blockDiv);
+      });
+
+      if (!hasAnySupp) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs font-bold">
+            등록해 둔 영양제 내역이 전무합니다. 상단 보관함에서 신규 영양 제품을 추가해 복용 주기를 정해 보세요.
+          </div>
+        `;
+      }
+    }
+
+    // 식단 카드 갱신
+    function renderMealsCards() {
+      const date = state.selectedDate;
+      const dayMeals = state.meals[date] || {};
+
+      ['morning', 'lunch', 'dinner'].forEach(mType => {
+        const meal = dayMeals[mType];
+        const labelEl = document.getElementById(`mealLabel-${mType}`);
+        const picEl = document.getElementById(`mealPic-${mType}`);
+        const bodyEl = document.getElementById(`mealBody-${mType}`);
+
+        if (meal) {
+          labelEl.textContent = "분석 완료";
+          labelEl.className = "text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold";
+
+          if (meal.imageUrl) {
+            picEl.innerHTML = `<img src="${meal.imageUrl}" class="w-full h-full object-cover">`;
+          } else {
+            picEl.innerHTML = `
+              <div class="w-full h-full bg-gradient-to-tr from-emerald-100 to-teal-100 flex items-center justify-center text-emerald-800 text-[10px] font-extrabold">
+                🥗 간이 비전 이미지
+              </div>
+            `;
+          }
+
+          bodyEl.innerHTML = `
+            <div class="space-y-1.5 pt-2">
+              <p class="font-extrabold text-slate-800 text-xs leading-snug">${meal.foodName}</p>
+              <div class="grid grid-cols-2 gap-1 text-[10px] text-slate-500 border-t border-slate-200/60 pt-1.5">
+                <span>🔥 ${meal.calories} kcal</span>
+                <span class="text-emerald-600 font-bold">🥩 단백질 ${meal.protein}g</span>
+                <span>🌾 탄수 ${meal.carbs}g</span>
+                <span>🥑 지방 ${meal.fat}g</span>
+              </div>
+              <p class="bg-white p-2 rounded-lg text-[9px] text-slate-500 leading-relaxed border border-slate-200/50 max-h-20 overflow-y-auto mt-1">${meal.feedback}</p>
+            </div>
+          `;
+        } else {
+          labelEl.textContent = "미등록";
+          labelEl.className = "text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold";
+          picEl.innerHTML = "[식사 이미지 없음]";
+          bodyEl.innerHTML = `<p class="font-extrabold text-slate-400 text-xs text-center py-4">기록된 정보가 없습니다.</p>`;
+        }
+      });
+    }
+
+    // 글로벌 슬라이딩 경고 토스트 제어
+    function triggerFloatingBanner(title, body) {
+      document.getElementById('coachEmoji').textContent = "💡";
+      document.querySelector('#coachingMessageBanner h4').textContent = title;
+      document.getElementById('coachText').textContent = body;
+      document.getElementById('coachingMessageBanner').classList.remove('hidden');
+    }
+
+    function closeCoachingBanner() {
+      document.getElementById('coachingMessageBanner').classList.add('hidden');
+    }
+
+    // =====================================
+    // [신규] 브라우저 직접 동적 워드(.doc) 파일 빌드 및 내보내기 엔진
+    // =====================================
+    function downloadWordReport() {
+      const date = state.selectedDate;
+      const dayWater = state.water[date] || 0;
+      const waterPercent = Math.min(Math.round((dayWater / 2000) * 100), 100);
+      const dayChecks = state.supplementCheck[date] || {};
+
+      // 1. 영양제 리스트 바인딩
+      let suppTableRows = '';
+      state.supplements.forEach(s => {
+        const isChecked = !!dayChecks[s.id];
+        const statusText = isChecked ? '■ 복용 완료' : '□ 미복용';
+        const guide = INGREDIENT_GUIDE[s.ingredient] || {};
+        suppTableRows += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding:10px; font-size:11px; color:#334155;">${s.name}</td>
+            <td style="padding:10px; font-size:11px; color:#334155;">${s.time === 'morning' ? '아침' : s.time === 'lunch' ? '점심' : '저녁'}</td>
+            <td style="padding:10px; font-size:11px; color:#334155;">${s.ingredient} (${s.dose}${guide.unit || 'mg'})</td>
+            <td style="padding:10px; font-size:11px; color:#0f766e; font-weight:bold;">${guide.timing === 'post-meal' ? '식후 추천' : '식전 추천'}</td>
+            <td style="padding:10px; font-size:11px; font-weight:bold; color:${isChecked ? '#059669' : '#dc2626'}">${statusText}</td>
+          </tr>
+        `;
+      });
+
+      if (state.supplements.length === 0) {
+        suppTableRows = `
+          <tr>
+            <td colspan="5" style="padding:20px; text-align:center; font-size:11px; color:#94a3b8;">오늘 등록된 일일 영양제가 존재하지 않습니다.</td>
+          </tr>
+        `;
+      }
+
+      // 2. 경고 경고 목록 취합
+      const warnings = evaluateSupplementWarnings();
+      let warningBlock = '';
+      if (warnings.length > 0) {
+        warningBlock = `
+          <div style="background-color:#fff1f2; border-left:4px solid #f43f5e; padding:12px; margin-bottom:18px; border-radius:4px;">
+            <h4 style="color:#9f1239; font-size:12px; margin:0 0 6px 0; font-weight:bold;">⚠️ 의약학 성분 과용 및 위험 경고</h4>
+            <ul style="margin:0; padding-left:20px; font-size:11px; color:#b91c1c;">
+              ${warnings.map(w => `<li style="margin-bottom:4px;">${w.message}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      // 3. 식단 피드백 조립
+      const dayMeals = state.meals[date] || {};
+      let mealContents = '';
+      const mealTypes = [
+        { key: 'morning', label: '🌅 아침 식단' },
+        { key: 'lunch', label: '☀️ 점심 식단' },
+        { key: 'dinner', label: '🌙 저녁 식단' }
+      ];
+
+      mealTypes.forEach(mt => {
+        const meal = dayMeals[mt.key];
+        if (meal) {
+          mealContents += `
+            <div style="margin-bottom:15px; border:1px solid #e2e8f0; border-radius:6px; padding:12px; background-color:#fafafa;">
+              <h4 style="margin:0 0 8px 0; font-size:12px; color:#1e293b; font-weight:bold;">${mt.label}: ${meal.foodName}</h4>
+              <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+                <tr style="background-color:#f1f5f9; text-align:center;">
+                  <th style="padding:6px; font-size:10px; color:#475569; border:1px solid #cbd5e1;">칼로리 (kcal)</th>
+                  <th style="padding:6px; font-size:10px; color:#475569; border:1px solid #cbd5e1;">단백질 (g)</th>
+                  <th style="padding:6px; font-size:10px; color:#475569; border:1px solid #cbd5e1;">탄수화물 (g)</th>
+                  <th style="padding:6px; font-size:10px; color:#475569; border:1px solid #cbd5e1;">지방 (g)</th>
+                </tr>
+                <tr style="text-align:center; background-color:#ffffff;">
+                  <td style="padding:6px; font-size:10px; color:#334155; border:1px solid #cbd5e1;">${meal.calories}</td>
+                  <td style="padding:6px; font-size:10px; color:#059669; font-weight:bold; border:1px solid #cbd5e1;">${meal.protein}g</td>
+                  <td style="padding:6px; font-size:10px; color:#334155; border:1px solid #cbd5e1;">${meal.carbs}g</td>
+                  <td style="padding:6px; font-size:10px; color:#334155; border:1px solid #cbd5e1;">${meal.fat}g</td>
+                </tr>
+              </table>
+              <p style="margin:0; font-size:10px; color:#475569; line-height:1.4;"><strong>💡 영양 자문 의견:</strong> ${meal.feedback}</p>
+            </div>
+          `;
+        } else {
+          mealContents += `
+            <p style="font-size:11px; color:#94a3b8; margin-bottom:15px; italic">🍳 ${mt.label}: 미등록 상태입니다.</p>
+          `;
+        }
+      });
+
+      // 4. Word 호환 HTML 골격 빌드 (UTF-8 인코딩 및 BOM 부착 필수)
+      const docTemplate = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <title>${date} 건강 웰니스 보고서</title>
+          <style>
+            body { font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif; line-height: 1.6; color: #1e293b; }
+            h1 { color: #059669; font-size: 20pt; border-bottom: 2px solid #059669; padding-bottom: 6px; margin-bottom: 12px; text-align: center; }
+            h2 { color: #0f766e; font-size: 14pt; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; }
+            .section { margin-bottom: 25px; }
+            .meta-info { text-align: right; font-size: 10pt; color: #64748b; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background-color: #f1f5f9; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>🌿 일일 건강 웰니스 분석 성적표</h1>
+          <div class="meta-info">
+            <strong>작성 일자:</strong> ${date} | <strong>코치명:</strong> AI Wellness Coach 봇
+          </div>
+
+          <div class="section">
+            <h2>💧 1. 당일 수분 공급 추이</h2>
+            <p style="font-size:11px; color:#334155; margin:0 0 6px 0;">
+              당일 섭취 총량: <strong style="font-size:12px; color:#0284c7;">${dayWater} ml</strong> (일일 권장 기준 2,000ml 대비 <strong>${waterPercent}%</strong> 완수)
+            </p>
+            <p style="font-size:11px; color:#475569; margin:0;">
+              <strong>수분 코칭 조언:</strong> ${dayWater >= 2000 ? '<span style="color:#059669; font-weight:bold;">안정 상태입니다!</span> 충분한 수분을 유지하여 혈행 순환이 완벽합니다.' : '<span style="color:#e11d48; font-weight:bold;">경고입니다.</span> 수분이 결핍될 시 쉽게 만성 피로와 두통을 느낍니다. 300ml 유리컵을 수시로 챙겨 드시기 바랍니다.'}
+            </p>
+          </div>
+
+          <div class="section">
+            <h2>💊 2. 스마트 영양제 복용 & 부작용 사전 점검</h2>
+            ${warningBlock}
+            <table border="1" style="border:1px solid #cbd5e1; border-collapse:collapse; width:100%; margin-top:10px;">
+              <thead>
+                <tr style="background-color:#f8fafc;">
+                  <th style="padding:8px; font-size:11px; text-align:left; color:#1e293b;">제품명</th>
+                  <th style="padding:8px; font-size:11px; text-align:left; color:#1e293b;">권장 주기</th>
+                  <th style="padding:8px; font-size:11px; text-align:left; color:#1e293b;">핵심 주성분</th>
+                  <th style="padding:8px; font-size:11px; text-align:left; color:#1e293b;">최적 타이밍</th>
+                  <th style="padding:8px; font-size:11px; text-align:left; color:#1e293b;">복용 여부</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${suppTableRows}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>🥗 3. 일일 밀착 식단 성분 리포트</h2>
+            ${mealContents}
+          </div>
+
+          <div style="margin-top:40px; padding:15px; border-top:3px solid #10b981; background-color:#f0fdf4; border-radius:6px;">
+            <p style="margin:0; font-size:11px; color:#166534; font-weight:bold; line-height:1.5;">
+              📢 코칭 마스터 총평:<br>
+              하루 동안 실천한 식사 습관 및 보조 성분, 고른 수분 보충은 수 주 뒤 나타나는 피부 톤, 피로도 및 장내 생태계 복원과 직접 직결됩니다. 식약처 기준치 범위 안에서 과잉 중복을 예방하며 면역 안정에 몰입해 나갑시다.
+            </p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // 5. Blob 변환 후 Word 파일 다운로드 구동
+      const blob = new Blob(['\ufeff' + docTemplate], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${date}_AI건강_웰니스_성적표.doc`;
+      a.click();
+      URL.revokeObjectURL(url);
+      triggerFloatingBanner("💾 문서 생성 완료", "해당 일자의 건강 분석 보고서가 MS Word 규격으로 성공적으로 다운로드되었습니다.");
+    }
+  </script>
+
+</body>
+</html>
